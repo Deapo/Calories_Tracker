@@ -305,7 +305,7 @@ class HomeScreen extends StatelessWidget {
                   Divider(thickness: 1, color: Colors.grey.shade200),
                   SizedBox(height: 16),
                   Text(
-                    '“Hãy kiên trì, thành công sẽ đến với bạn!”',
+                    '“Hãy kiên trì!”',
                     style: TextStyle(
                       fontStyle: FontStyle.italic,
                       fontSize: 16,
@@ -335,26 +335,11 @@ class HomeScreen extends StatelessWidget {
 
   // Widget nhỏ cho macro
   Widget _macroItem(String label, double value, double goal, Color color) {
-    return Column(
-      children: [
-        Text(
-          label,
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-            fontSize: 16,
-          ),
-        ),
-        SizedBox(height: 6),
-        Text(
-          '${value.toInt()}/${goal.toInt()}g',
-          style: TextStyle(
-            fontSize: 14,
-            color: color,
-            fontWeight: FontWeight.w500,
-          ),
-        ),
-      ],
+    return AnimatedMacroCircle(
+      label: label,
+      value: value,
+      goal: goal,
+      color: color,
     );
   }
 }
@@ -407,5 +392,115 @@ class CalorieProgressPainter extends CustomPainter {
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) {
     return true;
+  }
+}
+
+// Animated Macro Circle Widget
+class AnimatedMacroCircle extends StatefulWidget {
+  final String label;
+  final double value;
+  final double goal;
+  final Color color;
+
+  const AnimatedMacroCircle({
+    Key? key,
+    required this.label,
+    required this.value,
+    required this.goal,
+    required this.color,
+  }) : super(key: key);
+
+  @override
+  State<AnimatedMacroCircle> createState() => _AnimatedMacroCircleState();
+}
+
+class _AnimatedMacroCircleState extends State<AnimatedMacroCircle> with SingleTickerProviderStateMixin {
+  late AnimationController _controller;
+  late Animation<double> _animation;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = AnimationController(
+      duration: const Duration(seconds: 2),
+      vsync: this,
+    );
+
+    _animation = Tween<double>(
+      begin: 0,
+      end: widget.value / widget.goal,
+    ).animate(CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeInOut,
+    ));
+
+    _controller.forward();
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          widget.label,
+          style: TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Colors.black87,
+            fontSize: 16,
+          ),
+        ),
+        SizedBox(height: 6),
+        AnimatedBuilder(
+          animation: _animation,
+          builder: (context, child) {
+            return Transform(
+              transform: Matrix4.identity()
+                ..setEntry(3, 2, 0.001)
+                ..rotateX(_animation.value * 0.5)
+                ..rotateY(_animation.value * 0.5),
+              alignment: Alignment.center,
+              child: Container(
+                width: 60,
+                height: 60,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      widget.color.withOpacity(0.7),
+                      widget.color,
+                    ],
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: widget.color.withOpacity(0.3),
+                      blurRadius: 8,
+                      offset: Offset(0, 4),
+                    ),
+                  ],
+                ),
+                child: Center(
+                  child: Text(
+                    '${widget.value.toInt()}/${widget.goal.toInt()}g',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
+    );
   }
 }
